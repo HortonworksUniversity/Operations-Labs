@@ -1,0 +1,18 @@
+{
+  "configurations" : {
+    "hive-env" : {
+        "hive_txn_acid" : "on"
+    },
+    "hive-site": {
+        "hive.support.concurrency": "true",
+        "hive.enforce.bucketing": "true",
+        "hive.exec.dynamic.partition.mode": "nonstrict",
+        "hive.txn.manager": "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager",
+        "hive.compactor.initiator.on": "true",
+        "hive.compactor.worker.threads": "1"
+    },
+    "kafka-broker": {
+        "listeners": "PLAINTEXT://0.0.0.0:6667"
+    }
+  }
+}

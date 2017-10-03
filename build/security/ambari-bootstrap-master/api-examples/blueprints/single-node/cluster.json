@@ -1,0 +1,10 @@
+{
+  "blueprint": "single",
+  "default_password": "replacethiswithacomplexpass",
+  "host_groups": [
+    { "name": "host-group-1",
+      "hosts": [ { "fqdn": "yourhostnamehere" } ]
+    }
+  ]
+}
+

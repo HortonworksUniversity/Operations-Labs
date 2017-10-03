@@ -1,0 +1,8 @@
+[
+  {
+    "blueprint" : "testblueprint1",
+    "host_group" : "host_group_4",
+    "host_count" : 1,
+    "host_predicate" : "Hosts/os_type=centos7"
+  }
+]
