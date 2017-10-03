@@ -15,15 +15,18 @@ export AWS_SECRET_ACCESS_KEY=<your AWS access secret>
 # 1.2 job specific variables -- change these as required 
 export AWS_DEFAULT_REGION=us-west-2
 export EC2_URL=https://ec2.us-west-2.amazonaws.com
-export SEC_GROUP=sg-a02d17c4
+export SEC_GROUP=<your aws security group id>
 export AMI=ami-0e3fde6e
-export SUBNET=subnet-02edac67
-export TRAINING_NAME=HDP25-Security-Rev1-1-0-Willie-Test
+export AMI2=ami-b35346ca
+export AMI3=ami-f8574281
+export SUBNET=<your aws subnet id>
+export TRAINING_NAME=Security-Cluster-Test
 export FIRST_CLUSTER_LABEL=100
-export NO_OF_VMs=2
+export NO_OF_VMs=1
 export NO_OF_ADDTL_NODES=3
 export INSTANCE_TYPE="m4.large"
 export ADD_AD_SERVER=true
+export ADD_XR_SERVER=true
 
 # 1.3 Cloudformation variables -- do not change
 export lab_prefix=$TRAINING_NAME"-"
@@ -33,12 +36,14 @@ export lab_batch=$NO_OF_ADDTL_NODES
 export cfn_parameters='
 [
 {"ParameterKey":"KeyName","ParameterValue":"training-keypair"},
-{"ParameterKey":"AmbariServices","ParameterValue":"HDFS MAPREDUCE2 PIG YARN HIVE HBASE TEZ AMBARI_METRICS AMBARI_INFRA SLIDER ZOOKEEPER"},
-{"ParameterKey":"HDPStack","ParameterValue":"2.5"},
+{"ParameterKey":"AmbariServices","ParameterValue":"HDFS MAPREDUCE2 PIG YARN HIVE HBASE TEZ AMBARI_INFRA SLIDER ZOOKEEPER"},
+{"ParameterKey":"HDPStack","ParameterValue":"2.6"},
+{"ParameterKey":"AmbariVersion","ParameterValue":"2.5.2.0"},
 {"ParameterKey":"AdditionalInstanceCount","ParameterValue":"'$NO_OF_ADDTL_NODES'"},
 {"ParameterKey":"SubnetId","ParameterValue":"'$SUBNET'"},
 {"ParameterKey":"SecurityGroups","ParameterValue":"'$SEC_GROUP'"},
-{"ParameterKey":"InstanceType","ParameterValue":"'$INSTANCE_TYPE'"}
+{"ParameterKey":"InstanceType","ParameterValue":"'$INSTANCE_TYPE'"},
+{"ParameterKey":"DeployCluster","ParameterValue":"true"}
 ]
 '
 #echo $cfn_parameters
@@ -61,7 +66,19 @@ if [[ "$ADD_AD_SERVER" == "true" ]] ; then
    AD_SERVER_NAME=$TRAINING_NAME"-WIN-AD-SERVER"
    aws ec2 create-tags --resources $ADInstance --tags Key=Name,Value=$AD_SERVER_NAME
 fi
-
+# 2.2 create cross-real authentication servers if required
+if [[ "$ADD_XR_SERVER" == "true" ]] ; then
+   echo "   Creating Cross-real auth MIT-KDC Server"
+   echo ""
+   ADInstance2=`aws ec2 run-instances --image-id $AMI2 --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'InstanceId' | awk -F':' '{print $2}' | sed 's|[ "]||g' | sed 's/,//'`
+   AD_SERVER_NAME=$TRAINING_NAME"-MIT-KDC-XREALM"
+   aws ec2 create-tags --resources $ADInstance2 --tags Key=Name,Value=$AD_SERVER_NAME
+   echo "   Creating Cross-real auth AD Server"
+   echo ""
+   ADInstance3=`aws ec2 run-instances --image-id $AMI3 --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'InstanceId' | awk -F':' '{print $2}' | sed 's|[ "]||g' | sed 's/,//'`
+   AD_SERVER_NAME=$TRAINING_NAME"-AD-XREALM"
+   aws ec2 create-tags --resources $ADInstance3 --tags Key=Name,Value=$AD_SERVER_NAME
+fi
 
 # 3 PROCESS ALL CLUSTERS TO OBTAIN IPS  
 
@@ -113,5 +130,14 @@ if [[ "$ADD_AD_SERVER" == "true" ]] ; then
    final_hosts+=$(echo -e "\n ${TRAINING_NAME}     : WIN AD SERVER   : ${temp_AD_public_ip}/${temp_AD_private_ip} ");
 fi
 
-echo "$final_hosts"
+if [[ "$ADD_XR_SERVER" == "true" ]] ; then
+   temp_AD_public_ip=`aws ec2 describe-instances --instance-ids $ADInstance2 --output text | grep INSTANCES | cut -f16`;
+   temp_AD_private_ip=`aws ec2 describe-instances --instance-ids $ADInstance2 --output text | grep INSTANCES | cut -f14`;
+   final_hosts+=$(echo -e "\n ${TRAINING_NAME}     : MIT-KDC-XREALM  : ${temp_AD_public_ip}/${temp_AD_private_ip} ");
 
+   temp_AD_public_ip=`aws ec2 describe-instances --instance-ids $ADInstance --output text | grep INSTANCES | cut -f16`;
+   temp_AD_private_ip=`aws ec2 describe-instances --instance-ids $ADInstance --output text | grep INSTANCES | cut -f14`;
+   final_hosts+=$(echo -e "\n ${TRAINING_NAME}     : AD-XREALM       : ${temp_AD_public_ip}/${temp_AD_private_ip} ");
+fi
+
+echo "$final_hosts"
