@@ -32,7 +32,7 @@ do
   ((batchcounter++))
   aws cloudformation create-stack --stack-name ${cluster} \
     --capabilities CAPABILITY_IAM \
-    --template-body https://raw.githubusercontent.com/HortonworksUniversity/Ops_Labs/1.1.0/build/security/cloudformation.json \
+    --template-body https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/build/security/cloudformation.json \
     --parameters "${cfn_parameters}" \
         ${cfn_switches} > create-stack.log
 
