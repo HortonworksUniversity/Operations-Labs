@@ -1,32 +1,32 @@
 #!/bin/bash
 
-############################
-# CREATE SECURITY CLUSTERS 
-###########################
-
+##############################
+# CREATE OPERATIONS CLUSTERS # 
+##############################
 
 # 1. DEFINE VARIABLES
 # 1.1 global vars 
 export AWS_CLI_HOME=/usr/local/aws
 PATH=$PATH:$AWS_CLI_HOME/bin
-export AWS_ACCESS_KEY_ID=<your AWS access key id>
-export AWS_SECRET_ACCESS_KEY=<your AWS access secret>
+export AWS_ACCESS_KEY_ID=<your aws key id>
+export AWS_SECRET_ACCESS_KEY=<your aws secret access key>
 
 # 1.2 job specific variables -- change these as required 
 export AWS_DEFAULT_REGION=us-west-2
 export EC2_URL=https://ec2.us-west-2.amazonaws.com
-export SEC_GROUP=<your aws security group id>
+export SEC_GROUP=<your aws sec group>
 export AMI=ami-0e3fde6e
 export AMI2=ami-b35346ca
 export AMI3=ami-f8574281
 export SUBNET=<your aws subnet id>
-export TRAINING_NAME=Security-Cluster-Test
+export TRAINING_NAME=BASE-NAME-FOR-YOUR-CLUSTERS
 export FIRST_CLUSTER_LABEL=100
 export NO_OF_VMs=1
 export NO_OF_ADDTL_NODES=3
 export INSTANCE_TYPE="m4.large"
 export ADD_AD_SERVER=true
 export ADD_XR_SERVER=true
+export DEPLOY_CLUSTER=false
 
 # 1.3 Cloudformation variables -- do not change
 export lab_prefix=$TRAINING_NAME"-"
@@ -43,7 +43,7 @@ export cfn_parameters='
 {"ParameterKey":"SubnetId","ParameterValue":"'$SUBNET'"},
 {"ParameterKey":"SecurityGroups","ParameterValue":"'$SEC_GROUP'"},
 {"ParameterKey":"InstanceType","ParameterValue":"'$INSTANCE_TYPE'"},
-{"ParameterKey":"DeployCluster","ParameterValue":"true"}
+{"ParameterKey":"DeployCluster","ParameterValue":"'$DEPLOY_CLUSTER'"}
 ]
 '
 #echo $cfn_parameters
@@ -62,7 +62,7 @@ AD_SERVER_NAME=''
 if [[ "$ADD_AD_SERVER" == "true" ]] ; then
    echo "   Creating Win-AD Instance"
    echo ""
-   ADInstance=`aws ec2 run-instances --image-id $AMI --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'InstanceId' | awk -F':' '{print $2}' | sed 's|[ "]||g' | sed 's/,//'`
+   ADInstance=`aws ec2 run-instances --image-id $AMI --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'INSTANCES' | cut -f8`
    AD_SERVER_NAME=$TRAINING_NAME"-WIN-AD-SERVER"
    aws ec2 create-tags --resources $ADInstance --tags Key=Name,Value=$AD_SERVER_NAME
 fi
@@ -70,12 +70,12 @@ fi
 if [[ "$ADD_XR_SERVER" == "true" ]] ; then
    echo "   Creating Cross-real auth MIT-KDC Server"
    echo ""
-   ADInstance2=`aws ec2 run-instances --image-id $AMI2 --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'InstanceId' | awk -F':' '{print $2}' | sed 's|[ "]||g' | sed 's/,//'`
+   ADInstance2=`aws ec2 run-instances --image-id $AMI2 --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'INSTANCES' | cut -f8`
    AD_SERVER_NAME=$TRAINING_NAME"-MIT-KDC-XREALM"
    aws ec2 create-tags --resources $ADInstance2 --tags Key=Name,Value=$AD_SERVER_NAME
    echo "   Creating Cross-real auth AD Server"
    echo ""
-   ADInstance3=`aws ec2 run-instances --image-id $AMI3 --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'InstanceId' | awk -F':' '{print $2}' | sed 's|[ "]||g' | sed 's/,//'`
+   ADInstance3=`aws ec2 run-instances --image-id $AMI3 --subnet-id $SUBNET --security-group-ids $SEC_GROUP --key-name training-keypair --instance-type m3.xlarge --count 1 | grep 'INSTANCES' | cut -f8`
    AD_SERVER_NAME=$TRAINING_NAME"-AD-XREALM"
    aws ec2 create-tags --resources $ADInstance3 --tags Key=Name,Value=$AD_SERVER_NAME
 fi
@@ -135,8 +135,8 @@ if [[ "$ADD_XR_SERVER" == "true" ]] ; then
    temp_AD_private_ip=`aws ec2 describe-instances --instance-ids $ADInstance2 --output text | grep INSTANCES | cut -f14`;
    final_hosts+=$(echo -e "\n ${TRAINING_NAME}     : MIT-KDC-XREALM  : ${temp_AD_public_ip}/${temp_AD_private_ip} ");
 
-   temp_AD_public_ip=`aws ec2 describe-instances --instance-ids $ADInstance --output text | grep INSTANCES | cut -f16`;
-   temp_AD_private_ip=`aws ec2 describe-instances --instance-ids $ADInstance --output text | grep INSTANCES | cut -f14`;
+   temp_AD_public_ip=`aws ec2 describe-instances --instance-ids $ADInstance3 --output text | grep INSTANCES | cut -f16`;
+   temp_AD_private_ip=`aws ec2 describe-instances --instance-ids $ADInstance3 --output text | grep INSTANCES | cut -f14`;
    final_hosts+=$(echo -e "\n ${TRAINING_NAME}     : AD-XREALM       : ${temp_AD_public_ip}/${temp_AD_private_ip} ");
 fi
 
