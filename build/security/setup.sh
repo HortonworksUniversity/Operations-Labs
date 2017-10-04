@@ -29,7 +29,7 @@ curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Lab
 
 ## Ambari Server specific tasks
 if [ "${install_ambari_server}" = "true" ]; then
-    bash -c "nohup ambari-server restart" || true
+    bash -c "nohup ambari-server start" || true
 
     sleep 60
 
