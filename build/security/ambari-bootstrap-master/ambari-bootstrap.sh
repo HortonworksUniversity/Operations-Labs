@@ -188,7 +188,7 @@ case "${lsb_dist}" in
             sh -c "${ambari_server_custom_script}"
 
             chkconfig ambari-server on
-            if ! nohup sh -c "ambari-server restart 2>&1 > /dev/null"; then
+            if ! nohup sh -c "ambari-server start 2>&1 > /dev/null"; then
                 printf 'Ambari Server failed to start\n' >&2
             fi
         fi
