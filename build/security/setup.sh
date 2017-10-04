@@ -75,16 +75,6 @@ cat << EOF > configuration-custom.json
         "enable_hive_interactive": "true",
         "llap_queue_capacity": "75"
     },
-    "solr-env": {
-        "solr.port": "6083"
-    },
-    "solr-config": {
-        "solr.port": "6083",
-        "solr.datadir": "/opt/ranger_audit_server",
-        "solr.download.location": "HDPSEARCH",
-        "solr.znode": "/ranger_audits",
-        "solr.cloudmode": "true"
-    },
     "core-site": {
         "hadoop.proxyuser.HTTP.groups" : "users,hadoop-users",
         "hadoop.proxyuser.HTTP.hosts" : "*",
