@@ -96,7 +96,6 @@ cat << EOF > configuration-custom.json
 }
 EOF
 
-        export ambari_services="${ambari_services:-"HDFS MAPREDUCE2 PIG YARN HIVE ZOOKEEPER AMBARI_METRICS"}"
         export ambari_password="${ambari_pass}"
         export cluster_name=${stack:-mycluster}
         export host_count=${host_count:-skip}
