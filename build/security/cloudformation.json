@@ -44,6 +44,9 @@
             "us-west-2": {
                 "AMI": "ami-d440a6e7"
             }
+            "ap-south-1": {
+                "AMI": "ami-11f0837e"
+            }            
         }
     },
     "Outputs": {
