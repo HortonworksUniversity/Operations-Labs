@@ -1,0 +1,9 @@
+wget https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/labfiles/Spark/Spark_B
+lueprint
+wget https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/labfiles/Spark/SparkDe
+vCluster.install
+vi SparkDevCluster.install
+curl -u admin:BadPass#1 -i -H "X-Requested-By: root" -X POST -d @Spark_Blueprint http://localhost:8080/api
+/v1/blueprints/testblueprint1
+curl -u admin:BadPass#1 -i -H "X-Requested-By: root" -X POST -d @SparkDevCluster.install http://localhost:
+8080/api/v1/clusters/Spark_Training
