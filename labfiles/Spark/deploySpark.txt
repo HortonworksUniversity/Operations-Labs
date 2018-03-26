@@ -1,3 +1,4 @@
+# Run these commands on the Ambari Node
 wget https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/labfiles/Spark/Spark_Blueprint
 wget https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/labfiles/Spark/SparkDevCluster.install
 #
