@@ -8,11 +8,11 @@
     }
   ],
   "host_groups" :[
-    { "name" : "host_group_1",
-      "hosts" :[ { "fqdn" : "node1"} ]
-      },
     { "name" : "host_group_2",
-      "hosts" :[ { "fqdn" : "AmbariNode" } ]
+      "hosts" :[ { "fqdn" : "AmbariNode"} ]
+      },
+    { "name" : "host_group_1",
+      "hosts" :[ { "fqdn" : "node1" } ]
       },
     { "name" : "host_group_3",
       "hosts" :[ { "fqdn" : "node3" } ]
