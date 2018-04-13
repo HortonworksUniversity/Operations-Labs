@@ -1,0 +1,18 @@
+#
+# copy zip to all nodes
+#
+scp spark-labs_20171208.zip
+sudo -u root unzip /home/centos/spark-labs_20171208.zip -d /
+sudo -u root chmod 755 /spark-labs
+sudo -u root chown -R zeppelin:zeppelin /spark-labs
+#
+# on one node push /spark-labs to hdfs under /user/zeppelin
+#
+sudo sudo -u hdfs hdfs dfs -put /spark-labs /user/zeppelin/spark-labs
+sudo sudo -u hdfs hdfs dfs -chown -R zeppelin /user/zeppelin/spark-labs
+
+#
+# on the three additional nodes add sbt repo and install sbt package
+#
+curl https://bintray.com/sbt/rpm/rpm | sudo tee /etc/yum.repos.d/bintray-sbt-rpm.repo
+sudo -u root yum install sbt
