@@ -104,7 +104,7 @@
 "Type": "String"
 },
 "BootDiskSize": {
-"Default": "80",
+"Default": "40",
 "Description": "Size of boot disk.",
 "MaxValue": 2000,
 "MinValue": 10,
