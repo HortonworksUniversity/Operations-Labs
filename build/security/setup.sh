@@ -8,6 +8,9 @@ export ambari_pass=${ambari_pass:-BadPass#1}
 
 cd
 
+cp -a /etc/yum.repos.d/CentOS-Base.repo /root/CentOS-Base.repo.bak
+curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/build/security/CentOS-Base.repo.7.4.1708 > /etc/yum.repos.d/CentOS-Base.repo
+
 yum makecache
 yum -y -q install git epel-release ntpd screen mysql-connector-java jq python-argparse python-configobj
 
