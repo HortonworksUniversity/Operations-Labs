@@ -10,9 +10,9 @@ cd
 
 cp -a /etc/yum.repos.d/CentOS-Base.repo /root/CentOS-Base.repo.bak
 curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/build/security/CentOS-Base.repo.7.4.1708 > /etc/yum.repos.d/CentOS-Base.repo
-
+yum clean all
 yum makecache
-yum -y -q install git epel-release ntpd screen mysql-connector-java jq python-argparse python-configobj
+yum -y -q install git epel-release ntp screen mysql-connector-java jq python-argparse python-configobj
 
 el_version=$(sed 's/^.\+ release \([.0-9]\+\).*/\1/' /etc/redhat-release | cut -d. -f1)
 case ${el_version} in
