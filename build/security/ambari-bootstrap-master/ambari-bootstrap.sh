@@ -129,7 +129,7 @@ case "${lsb_dist}" in
             my_disable_ipv6
 
             printf "## Info: Installing base packages\n"
-            yum install -y -q curl ntp openssl python zlib wget unzip openssh-clients-7.4p1-13.el7_4
+            yum install -y -q curl ntp openssl python zlib wget unzip openssh-clients --security
 
             printf "## Info: Fixing sudo to not requiretty. This is the default in newer distributions\n"
             printf 'Defaults !requiretty\n' > /etc/sudoers.d/888-dont-requiretty
