@@ -23,7 +23,7 @@ iptables_disable="${iptables_disable:-true}"
 java_provider="${java_provider:-open}" # accepts: open, oracle
 java_version="${java_version:-8}"
 ambari_server="${ambari_server:-localhost}"
-ambari_version="${ambari_version:-2.4.1.0}"
+ambari_version="${ambari_version:-2.6.1.5}"
 ambari_version_major="${ambari_version_major:-$(echo ${ambari_version} | cut -c 1).x}"
 ambari_server_custom_script="${ambari_server_custom_script:-/bin/true}"
 ambari_repo_baseurl="${ambari_repo_baseurl:-http://public-repo-1.hortonworks.com/ambari}"
@@ -66,7 +66,7 @@ elif [ -r /etc/redhat-release ]; then
     lsb_dist_release=$(awk '{print $(NF-1)}' /etc/redhat-release | cut -d "." -f1)
 elif [ -r /etc/os-release ] && [ $(awk '$1=="ID" {gsub("\"", ""); print $2}' FS='=' /etc/os-release) == "amzn" ]; then
     lsb_dist="centos"
-    lsb_dist_release=6
+    lsb_dist_release=7
 fi
 
 lsb_dist="$(echo "${lsb_dist}" | tr '[:upper:]' '[:lower:]')"
