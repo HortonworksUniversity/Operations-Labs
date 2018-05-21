@@ -6,7 +6,8 @@
 #sudo chown -R ${USER}:users /opt/ambari-bootstrap
 #ln -s /opt/ambari-bootstrap ~/
 
-
+sudo yum update -y -q curl
+sudo yum update -y -q --exclude=mysql-community-release-el7-5 all
 sudo yum -y -q install git
 
 sudo git clone -b 1.1.0 https://github.com/HortonworksUniversity/Ops_Labs /opt/ambari-bootstrap
