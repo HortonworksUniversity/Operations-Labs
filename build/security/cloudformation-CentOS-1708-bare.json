@@ -186,7 +186,7 @@
             "Type": "AWS::EC2::KeyPair::KeyName"
         },
         "PostCommand": {
-            "Default": "curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/build/security/setup-bare.sh | bash",
+            "Default": "curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/DEVOPS-bareOPS-instances/build/security/setup-bare.sh | bash",
             "Description": "Command to run during after nodes are deployed",
             "Type": "String"
         },
