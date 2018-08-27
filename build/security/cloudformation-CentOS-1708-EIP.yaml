@@ -1,0 +1,853 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  CloudFormation template to Deploy Hortonworks Data Platform on VPC with a
+  public subnet
+Mappings:
+  AMAZONLINUX2015:
+    eu-west-1:
+      AMI: ami-d1f482b1
+    us-east-1:
+      AMI: ami-8fcee4e5
+    us-west-2:
+      AMI: ami-63b25203
+  CENTOS7:
+    ap-northeast-1:
+      AMI: ami-4dd5522b
+    ap-northeast-2:
+      AMI: ami-53a1073d
+    ap-southeast-1:
+      AMI: ami-a6e88dda
+    ap-southeast-2:
+      AMI: ami-5b778339
+    eu-central-1:
+      AMI: ami-1e038d71
+    eu-west-1:
+      AMI: ami-192a9460
+    sa-east-1:
+      AMI: ami-6b5c1b07
+    us-east-1:
+      AMI: ami-02e98f78
+    us-west-1:
+      AMI: ami-b1a59fd1
+    us-west-2:
+      AMI: ami-b63ae0ce
+    ap-south-1:
+      AMI: ami-82a3eaed
+Outputs:
+  AmbariSSH:
+    Description: SSH to the Ambari Node
+    Value: !Join 
+      - ''
+      - - ssh centos@
+        - !GetAtt 
+          - AmbariNode
+          - PublicDnsName
+  AmbariServiceInstanceId:
+    Description: The Ambari Servers Instance-Id
+    Value: !Ref AmbariNode
+  AmbariURL:
+    Description: URL of Ambari UI
+    Value: !Join 
+      - ''
+      - - 'http://'
+        - !GetAtt 
+          - AmbariNode
+          - PublicDnsName
+        - ':8080'
+  IIAN:
+    Description: Instance ID of additional nodes
+    Value: !Ref AdditionalNodes
+  Region:
+    Description: AWS Region
+    Value: !Ref 'AWS::Region'
+Parameters:
+  AdditionalInstanceCount:
+    Default: '0'
+    Description: Number of additional instances
+    MaxValue: '99'
+    MinValue: '0'
+    Type: Number
+  AmbariPass:
+    AllowedPattern: >-
+      (?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*
+    Default: 'BadPass#1'
+    Description: >-
+      Password for Ambari Server. Must be at least 8 characters containing
+      letters, numbers and symbols
+    MaxLength: 32
+    MinLength: 8
+    NoEcho: true
+    Type: String
+  AmbariServices:
+    Default: >-
+      ACCUMULO AMBARI_METRICS FALCON FLUME HBASE HDFS HIVE KAFKA KNOX MAHOUT
+      MAPREDUCE2 OOZIE PIG SLIDER SPARK SQOOP STORM TEZ YARN ZOOKEEPER
+    Description: HDP Services to deploy
+    Type: String
+  AmbariVersion:
+    AllowedPattern: \d\.\d\.\d\.\d|\d\.\d\.\d
+    Default: 2.5.2.0
+    Description: Ambari Version
+    Type: String
+  BootDiskSize:
+    Default: '80'
+    Description: Size of boot disk.
+    MaxValue: 2000
+    MinValue: 10
+    Type: Number
+  DeployCluster:
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+    Description: >-
+      Deploy cluster with Ambari? If false, then Ambari is installed without
+      cluster deployment.
+    Type: String
+  HDPStack:
+    AllowedPattern: \d\.\d
+    Default: '2.6'
+    Description: >-
+      Password for Ambari Server. Must be at least 8 characters containing
+      letters, numbers and symbols
+    Type: String
+  InstanceType:
+    ConstraintDescription: Must be a valid EC2 instance type.
+    Default: m4.xlarge
+    Description: Instance type
+    Type: String
+  JavaProvider:
+    AllowedValues:
+      - open
+      - oracle
+    ConstraintDescription: open or oracle
+    Default: open
+    Description: 'Provider of Java packages: open or oracle'
+    Type: String
+  JavaVersion:
+    AllowedValues:
+      - '7'
+      - '8'
+    ConstraintDescription: 7 or 8
+    Default: '8'
+    Description: Version number of Java
+    Type: String
+  KeyName:
+    ConstraintDescription: Can contain only ASCII characters.
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+  PostCommand:
+    Default: >-
+      curl -sSL
+      https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/master/build/security/setup-S3.sh
+      | bash
+    Description: Command to run during after nodes are deployed
+    Type: String
+  SecurityGroups:
+    Description: The Security Groups to launch the instance with
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  SubnetId:
+    Description: >-
+      SubnetId of an existing subnet (for the primary network) in your Virtual
+      Private Cloud (VPC)access to the instance
+    Type: 'AWS::EC2::Subnet::Id'
+Resources:
+  AdditionalNodeLaunchConfig:
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: !Ref BootDiskSize
+            VolumeType: gp2
+        - DeviceName: /dev/sdb
+          VirtualName: ephemeral0
+        - DeviceName: /dev/sdc
+          VirtualName: ephemeral1
+        - DeviceName: /dev/sdd
+          VirtualName: ephemeral2
+        - DeviceName: /dev/sde
+          VirtualName: ephemeral3
+        - DeviceName: /dev/sdf
+          VirtualName: ephemeral4
+        - DeviceName: /dev/sdg
+          VirtualName: ephemeral5
+        - DeviceName: /dev/sdh
+          VirtualName: ephemeral6
+        - DeviceName: /dev/sdi
+          VirtualName: ephemeral7
+        - DeviceName: /dev/sdj
+          VirtualName: ephemeral8
+        - DeviceName: /dev/sdk
+          VirtualName: ephemeral9
+        - DeviceName: /dev/sdl
+          VirtualName: ephemeral10
+        - DeviceName: /dev/sdm
+          VirtualName: ephemeral11
+        - DeviceName: /dev/sdn
+          VirtualName: ephemeral12
+        - DeviceName: /dev/sdo
+          VirtualName: ephemeral13
+        - DeviceName: /dev/sdp
+          VirtualName: ephemeral14
+        - DeviceName: /dev/sdq
+          VirtualName: ephemeral15
+        - DeviceName: /dev/sdr
+          VirtualName: ephemeral16
+        - DeviceName: /dev/sds
+          VirtualName: ephemeral17
+        - DeviceName: /dev/sdt
+          VirtualName: ephemeral18
+        - DeviceName: /dev/sdu
+          VirtualName: ephemeral19
+        - DeviceName: /dev/sdv
+          VirtualName: ephemeral20
+        - DeviceName: /dev/sdw
+          VirtualName: ephemeral21
+        - DeviceName: /dev/sdx
+          VirtualName: ephemeral22
+        - DeviceName: /dev/sdy
+          VirtualName: ephemeral23
+      ImageId: !FindInMap 
+        - CENTOS7
+        - !Ref 'AWS::Region'
+        - AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups: !Ref SecurityGroups
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/usr/bin/env bash
+            - >
+              exec > >(tee /root/cloudformation.log|logger -t user-data -s
+              2>/dev/console) 2>&1
+
+              set -o nounset
+            - |
+              set -o errexit
+            - |
+              set -o xtrace
+            - export region='
+            - !Ref 'AWS::Region'
+            - |
+              '
+            - export stack='
+            - !Ref 'AWS::StackName'
+            - |
+              '
+            - export resource='
+            - AdditionalNodes
+            - |
+              '
+            - export ambari_server='
+            - !GetAtt 
+              - AmbariNode
+              - PrivateDnsName
+            - |
+              '
+            - export ambari_version='
+            - !Ref AmbariVersion
+            - |
+              '
+            - export ambari_stack_version='
+            - !Ref HDPStack
+            - |
+              '
+            - export java_provider=
+            - !Ref JavaProvider
+            - |+
+
+            - export java_version=
+            - !Ref JavaVersion
+            - |+
+
+            - export install_ambari_agent=
+            - 'true'
+            - |+
+
+            - export install_ambari_server=
+            - 'false'
+            - |+
+
+            - export ref_wait_ambari='
+            - !Ref waitHandleAmbari
+            - |
+              '
+            - export ambari_services='
+            - !Ref AmbariServices
+            - |
+              '
+            - export post_command='
+            - !Ref PostCommand
+            - |
+              '
+            - export ambari_pass=
+            - !Ref AmbariPass
+            - |+
+
+            - export deploy=
+            - !Ref DeployCluster
+            - |+
+
+            - export ref_additional_instance_count=
+            - !Ref AdditionalInstanceCount
+            - |+
+
+            - |+
+
+            - >
+              ########################################################################
+            - |
+              ## trap errors
+            - |
+              error_exit() {
+            - |2
+                local line_no=$1
+            - |2
+                local exit_code=$2
+            - |2
+                cfn-signal -e ${exit_code} --region ${region} --stack ${stack} --resource ${resource}
+            - |2
+                exit ${exit_code}
+            - |
+              }
+            - |
+              trap 'error_exit ${LINENO} ${?}' ERR
+            - |+
+
+            - |
+              export TERM=xterm
+            - |+
+
+            - >
+              ########################################################################
+            - |
+              ## Install and Update CloudFormation
+            - |
+              #yum install -y epel-release
+            - >
+              /usr/bin/easy_install
+              https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+            - |+
+
+            - |
+              ## Signal node is up
+            - >
+              cfn-signal -e ${?} --region ${region} --stack ${stack} --resource
+              ${resource}
+            - |+
+
+            - >
+              ########################################################################
+            - |
+              ## AWS specific system modifications
+            - |+
+
+            - |
+              printf 'Defaults !requiretty
+            - |
+              ' > /etc/sudoers.d/888-dont-requiretty
+            - |+
+
+            - |
+              setenforce Permissive
+            - |+
+
+            - |
+              # ## swappiness to 0
+            - |
+              # sysctl -w vm.swappiness=0
+            - |
+              # mkdir -p /etc/sysctl.d
+            - |
+              # cat > /etc/sysctl.d/50-swappiness.conf <<-'EOF'
+            - |
+              # ## disable swapping
+            - |
+              # vm.swappiness=0
+            - |
+              # EOF
+            - |+
+
+            - |
+              cat >> ~/masterclass.env <<EOF
+            - |
+              export region="${region}"
+            - |
+              export stack="${stack}"
+            - |
+              export cluster_name="${stack}"
+            - |
+              export resource="${resource}"
+            - |
+              export ambari_server="${ambari_server}"
+            - |
+              export ambari_version="${ambari_version}"
+            - |
+              export ambari_stack_version="${ambari_stack_version}"
+            - |
+              export java_provider="${java_provider}"
+            - |
+              export java_version="${java_version}"
+            - |
+              export install_ambari_agent="${install_ambari_agent}"
+            - |
+              export install_ambari_server="${install_ambari_server}"
+            - |
+              export ref_wait_ambari="${ref_wait_ambari}"
+            - |
+              export ambari_services="${ambari_services}"
+            - |
+              export post_command="${post_command}"
+            - |
+              export ambari_pass="${ambari_pass}"
+            - |
+              export deploy="${deploy}"
+            - >
+              export
+              ref_additional_instance_count="${ref_additional_instance_count}"
+            - |
+              EOF
+            - |
+              chmod 600 ~/masterclass.env
+            - |+
+
+            - |
+              ## Remove existing mount points
+            - |
+              if [ -e '/dev/xvdb' ]; then
+            - |2
+                  sed '/^\/dev\/xvd[b-z]/d' -i /etc/fstab
+            - |+
+
+            - |2
+                  ## Format ephemeral drives and create mounts
+            - |2
+                  i=0
+            - |2
+                  for disk in /dev/xvd[b-z]; do
+            - |2
+                      mount=/grid/$(printf "%0*d
+            - |
+              " 2 $i)
+            - |2
+                      umount ${disk} || true
+            - |2
+                      mkdir -p ${mount}
+            - |2
+                      echo "${disk} ${mount} ext4 defaults,noatime,nodiratime 0 0" >> /etc/fstab
+            - |2
+                      nohup mkfs.ext4 -m 0 -T largefile4 ${disk} &
+            - |2
+                      i=$((i+1))
+            - |2
+                  done
+            - |2
+                  wait
+            - |+
+
+            - |2
+                  for disk in /dev/xvd[b-z]; do
+            - |2
+                      tune2fs -c0 -i0 ${disk}
+            - |2
+                      mount ${disk}
+            - |2
+                  done
+            - |
+              fi
+            - |+
+
+            - |
+              export host_count=$((ref_additional_instance_count + 1))
+            - |
+              echo ${post_command}
+            - |
+              sh -c "${post_command}"
+            - |+
+
+            - |
+              if [ "${resource}" = "AmbariNode" ]; then
+            - |2
+                  echo ${ref_wait_ambari}
+            - |2
+                  cfn-signal -e ${?} --region ${region} --stack ${stack} -r "Ambari tasks are done" ${ref_wait_ambari}
+            - |
+              fi
+            - |+
+
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+  AdditionalNodes:
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref AdditionalInstanceCount
+        Timeout: PT30M
+    DependsOn: AmbariNode
+    Properties:
+      DesiredCapacity: !Ref AdditionalInstanceCount
+      LaunchConfigurationName: !Ref AdditionalNodeLaunchConfig
+      MaxSize: !Ref AdditionalInstanceCount
+      MinSize: 0
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: !Ref 'AWS::StackName'
+      VPCZoneIdentifier:
+        - !Ref SubnetId
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+  AmbariNode:
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT15M
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: !Ref BootDiskSize
+            VolumeType: gp2
+        - DeviceName: /dev/sdb
+          VirtualName: ephemeral0
+        - DeviceName: /dev/sdc
+          VirtualName: ephemeral1
+        - DeviceName: /dev/sdd
+          VirtualName: ephemeral2
+        - DeviceName: /dev/sde
+          VirtualName: ephemeral3
+        - DeviceName: /dev/sdf
+          VirtualName: ephemeral4
+        - DeviceName: /dev/sdg
+          VirtualName: ephemeral5
+        - DeviceName: /dev/sdh
+          VirtualName: ephemeral6
+        - DeviceName: /dev/sdi
+          VirtualName: ephemeral7
+        - DeviceName: /dev/sdj
+          VirtualName: ephemeral8
+        - DeviceName: /dev/sdk
+          VirtualName: ephemeral9
+        - DeviceName: /dev/sdl
+          VirtualName: ephemeral10
+        - DeviceName: /dev/sdm
+          VirtualName: ephemeral11
+        - DeviceName: /dev/sdn
+          VirtualName: ephemeral12
+        - DeviceName: /dev/sdo
+          VirtualName: ephemeral13
+        - DeviceName: /dev/sdp
+          VirtualName: ephemeral14
+        - DeviceName: /dev/sdq
+          VirtualName: ephemeral15
+        - DeviceName: /dev/sdr
+          VirtualName: ephemeral16
+        - DeviceName: /dev/sds
+          VirtualName: ephemeral17
+        - DeviceName: /dev/sdt
+          VirtualName: ephemeral18
+        - DeviceName: /dev/sdu
+          VirtualName: ephemeral19
+        - DeviceName: /dev/sdv
+          VirtualName: ephemeral20
+        - DeviceName: /dev/sdw
+          VirtualName: ephemeral21
+        - DeviceName: /dev/sdx
+          VirtualName: ephemeral22
+        - DeviceName: /dev/sdy
+          VirtualName: ephemeral23
+      ImageId: !FindInMap 
+        - CENTOS7
+        - !Ref 'AWS::Region'
+        - AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds: !Ref SecurityGroups
+      SubnetId: !Ref SubnetId
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/usr/bin/env bash
+            - >
+              exec > >(tee /root/cloudformation.log|logger -t user-data -s
+              2>/dev/console) 2>&1
+
+              set -o nounset
+            - |
+              set -o errexit
+            - |
+              set -o xtrace
+            - export region='
+            - !Ref 'AWS::Region'
+            - |
+              '
+            - export stack='
+            - !Ref 'AWS::StackName'
+            - |
+              '
+            - export resource='
+            - AmbariNode
+            - |
+              '
+            - export ambari_server='
+            - 127.0.0.1
+            - |
+              '
+            - export ambari_version='
+            - !Ref AmbariVersion
+            - |
+              '
+            - export ambari_stack_version='
+            - !Ref HDPStack
+            - |
+              '
+            - export java_provider=
+            - !Ref JavaProvider
+            - |+
+
+            - export java_version=
+            - !Ref JavaVersion
+            - |+
+
+            - export install_ambari_agent=
+            - 'true'
+            - |+
+
+            - export install_ambari_server=
+            - 'true'
+            - |+
+
+            - export ref_wait_ambari='
+            - !Ref waitHandleAmbari
+            - |
+              '
+            - export ambari_services='
+            - !Ref AmbariServices
+            - |
+              '
+            - export post_command='
+            - !Ref PostCommand
+            - |
+              '
+            - export ambari_pass=
+            - !Ref AmbariPass
+            - |+
+
+            - export deploy=
+            - !Ref DeployCluster
+            - |+
+
+            - export ref_additional_instance_count=
+            - !Ref AdditionalInstanceCount
+            - |+
+
+            - |+
+
+            - >
+              ########################################################################
+            - |
+              ## trap errors
+            - |
+              error_exit() {
+            - |2
+                local line_no=$1
+            - |2
+                local exit_code=$2
+            - |2
+                cfn-signal -e ${exit_code} --region ${region} --stack ${stack} --resource ${resource}
+            - |2
+                exit ${exit_code}
+            - |
+              }
+            - |
+              trap 'error_exit ${LINENO} ${?}' ERR
+            - |+
+
+            - |
+              export TERM=xterm
+            - |+
+
+            - >
+              ########################################################################
+            - |
+              ## Install and Update CloudFormation
+            - |
+              #yum install -y epel-release
+            - >
+              /usr/bin/easy_install
+              https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+            - |+
+
+            - |
+              ## Signal node is up
+            - >
+              cfn-signal -e ${?} --region ${region} --stack ${stack} --resource
+              ${resource}
+            - |+
+
+            - >
+              ########################################################################
+            - |
+              ## AWS specific system modifications
+            - |+
+
+            - |
+              printf 'Defaults !requiretty
+            - |
+              ' > /etc/sudoers.d/888-dont-requiretty
+            - |+
+
+            - |
+              setenforce Permissive
+            - |+
+
+            - |
+              # ## swappiness to 0
+            - |
+              # sysctl -w vm.swappiness=0
+            - |
+              # mkdir -p /etc/sysctl.d
+            - |
+              # cat > /etc/sysctl.d/50-swappiness.conf <<-'EOF'
+            - |
+              # ## disable swapping
+            - |
+              # vm.swappiness=0
+            - |
+              # EOF
+            - |+
+
+            - |
+              cat >> ~/masterclass.env <<EOF
+            - |
+              export region="${region}"
+            - |
+              export stack="${stack}"
+            - |
+              export cluster_name="${stack}"
+            - |
+              export resource="${resource}"
+            - |
+              export ambari_server="${ambari_server}"
+            - |
+              export ambari_version="${ambari_version}"
+            - |
+              export ambari_stack_version="${ambari_stack_version}"
+            - |
+              export java_provider="${java_provider}"
+            - |
+              export java_version="${java_version}"
+            - |
+              export install_ambari_agent="${install_ambari_agent}"
+            - |
+              export install_ambari_server="${install_ambari_server}"
+            - |
+              export ref_wait_ambari="${ref_wait_ambari}"
+            - |
+              export ambari_services="${ambari_services}"
+            - |
+              export post_command="${post_command}"
+            - |
+              export ambari_pass="${ambari_pass}"
+            - |
+              export deploy="${deploy}"
+            - >
+              export
+              ref_additional_instance_count="${ref_additional_instance_count}"
+            - |
+              EOF
+            - |
+              chmod 600 ~/masterclass.env
+            - |+
+
+            - |
+              ## Remove existing mount points
+            - |
+              if [ -e '/dev/xvdb' ]; then
+            - |2
+                  sed '/^\/dev\/xvd[b-z]/d' -i /etc/fstab
+            - |+
+
+            - |2
+                  ## Format ephemeral drives and create mounts
+            - |2
+                  i=0
+            - |2
+                  for disk in /dev/xvd[b-z]; do
+            - |2
+                      mount=/grid/$(printf "%0*d
+            - |
+              " 2 $i)
+            - |2
+                      umount ${disk} || true
+            - |2
+                      mkdir -p ${mount}
+            - |2
+                      echo "${disk} ${mount} ext4 defaults,noatime,nodiratime 0 0" >> /etc/fstab
+            - |2
+                      nohup mkfs.ext4 -m 0 -T largefile4 ${disk} &
+            - |2
+                      i=$((i+1))
+            - |2
+                  done
+            - |2
+                  wait
+            - |+
+
+            - |2
+                  for disk in /dev/xvd[b-z]; do
+            - |2
+                      tune2fs -c0 -i0 ${disk}
+            - |2
+                      mount ${disk}
+            - |2
+                  done
+            - |
+              fi
+            - |+
+
+            - |
+              export host_count=$((ref_additional_instance_count + 1))
+            - |
+              echo ${post_command}
+            - |
+              sh -c "${post_command}"
+            - |+
+
+            - |
+              if [ "${resource}" = "AmbariNode" ]; then
+            - |2
+                  echo ${ref_wait_ambari}
+            - |2
+                  cfn-signal -e ${?} --region ${region} --stack ${stack} -r "Ambari tasks are done" ${ref_wait_ambari}
+            - |
+              fi
+            - |+
+
+    Type: 'AWS::EC2::Instance'
+  waitConditionAmbari:
+    Properties:
+      Handle: !Ref waitHandleAmbari
+      Timeout: '3600'
+    Type: 'AWS::CloudFormation::WaitCondition'
+  waitHandleAmbari:
+    Type: 'AWS::CloudFormation::WaitConditionHandle'
+
+  AmbariNodeEIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      InstanceId: !Ref AmbariNode
+      Domain: vpc
+    DependsOn: AmbariNode
+
+  AdditionalNodesEIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      InstanceId: !Ref AdditionalNodes
+      Domain: vpc
+    DependsOn: AdditionalNodes
+
