@@ -175,7 +175,7 @@
             "Type": "AWS::EC2::KeyPair::KeyName"
         },
         "PostCommand": {
-            "Default": "curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/CentOS-75-1801/build/security/setup-CO75-1801.sh | bash",
+            "Default": "curl -sSL https://raw.githubusercontent.com/HortonworksUniversity/Operations-Labs/CentOS-75-1801/build/security/setup-CO75-1804.sh | bash",
             "Description": "Command to run during after nodes are deployed",
             "Type": "String"
         },
